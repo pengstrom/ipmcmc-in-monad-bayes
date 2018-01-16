@@ -1,0 +1,199 @@
+\documentclass[a4paper, parskip]{scrartcl}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[british]{babel}
+
+\addtokomafont{disposition}{\rmfamily}
+\addtokomafont{descriptionlabel}{\rmfamily}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{todonotes}
+
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{Compiler for a Probabilistic Programming Language \todo{Title draft} \\ \normalfont
+\Large Bachelor Thesis Specification}
+
+\author{Per Engström \\ \small Subject Reader: Johannes Borgström \\ \small Supervisor:
+  Magnus Lundstedt, Precisit AB}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Background}
+\label{sec:background}
+
+Probabilistic promgramming languages are a paradigm used to model stochastic
+processes. It exposes language features to declaratively define models using
+random variables and perform inference on them.
+
+A compiler is a tool to transform a program in source-code form into a target,
+often machine code, but could also be another high-level language. It requires
+knowledge in many areas including formal languages, algorithms and computer
+architecture. For a probabilistic language we also need probability theory,
+statistics and even methods from artificial intelligence like hidden markov
+models to do inference efficiently.
+
+A compiler combines may areas of computer science and gives an opportunity to
+delve into Haskell and functional programming to an intermidiate level.
+
+The project will be carried out at the offices of Precisit AB under the
+supervision of Magnus Lundstedt.
+
+\todo[inline]{Precisit goals}
+
+A project \emph{Practical probabilistic programming with monads} by Adam Scibior
+et al.\ and the paper \emph{Probabilistic Functional Programming in Haskell} by Martin
+Erwig and Steve Kollmansberger describes implementing the machinery for writing
+in the probablistic style using Haskell. This will give insigt how to leverage
+haskell for the inference engine.
+
+Ina another paper called \emph{Lightweight Implementations of Probabilistic
+Programming Languages Via Transformational Compilation} David Wingate et al.\
+describe a method for adding stochastic abilities to any exsiting language using
+transforms and an accompanying Markov chain Monte Carlo inference engine.
+
+\section{Description}
+\label{sec:description}
+
+The goal of the project will be implementing a compiler for a probabilistic
+programming language. This includes parsing the source code, generating an
+executable and implementing the inference engine.
+
+In addition, the parsing of the language will be published as a Haskell package
+if no such package exists and there is enough time.
+
+\todo[inline]{Specific goals and tasks}
+
+\todo[inline]{Subjects of interest and how to evaluate}
+
+During the project I'll try to answer the following questions:
+
+\textbf{Is Haskell a suitable language for implementing a probabilistic
+language compiler?}
+
+\textbf{How do we test programs under the influence of chance?}
+
+The first question will be evaluated by how idiomatic the resulting
+implementation is and if any language-specific hurdles were encountered during
+implementation.
+
+The second question will reveal how well different strategies of testing reveal
+(and fails to reveal) bugs.
+
+\section{Method}
+\label{sec:method}
+
+I will implement a compiler using Haskell, a purely functional language with a
+mature support for parsing using parser combinators. It also featues algebraic
+data types and pattern matching which facilitates manipulation of abstract
+syntax trees.
+
+Some litterature relavant to the project are:
+\begin{itemize}
+\item \emph{Compilers: Principles,
+  Techniques and Tools} by Alfred V. Aho et al.\ Covering compilers in the
+  general. 
+
+  \item \emph{The Design and Implementation of Probabilistic Programming
+    Languages} by Noah D. Goodman and Andreas Stuhlmüller
+    (\url{http://dippl.org}). Covering
+    probabilistic languages in particular.
+\end{itemize}
+
+  \todo[inline]{More books/articles/websites}
+
+\subsection{Relevant Courses}
+\label{sec:relevant_courses}
+
+The courses most relevant is the compilers course and language semantics
+course. In addition, the statistics and artificial intelligence courses will
+prove valuable. Only two courses have covered Haskell, but most will be learned
+during this project.
+
+\begin{description}
+  \item[Compiler Design] Pertaining directly to the design of compilers
+    and naturally central to this work.
+
+  \item[Semantics of Programming Languages] Important for specifying
+    intent of code.
+
+  \item[Artificial Intelligence] Covers for example Hidden Markov Models for
+    inference.
+
+  \item[Computer Architecture] Assembly and low-level targets for the compiler.
+
+  %\item[Automata Theory] Methods and concepts for parsing languages.
+
+  \item[Mathematical Statistics] Concepts for probability, statistics and
+    inference.
+
+  %\item[Program Design and Data Structures] Intro to Haskell.
+
+  \item[Advanced Functional Programming] Advanced Haskell usage.
+\end{description}
+
+\section{Limitations}
+\label{sec:limitations}
+
+The most time consuming task of writing a compiler is various optimisations.
+This compiler will not be production-grade in terms of stability and features,
+but mainly of academic interest.
+
+The implemted language may be reduced to simplify the compiler, i.e.\ only
+supporting a subset of a larger language.
+
+\todo[inline]{Define scope}
+
+\section{Time Schedule}
+\label{sec:time_schedule}
+
+The project will start Monday 15 January and end Sunday 18 March nominally. A
+high-level preliminary project plan follows.
+
+\begin{center}
+  \begin{tabular}{rrl}
+    \toprule
+    \midrule
+    \textbf{Week} & \textbf{Dates} & \textbf{Description} \\
+    \midrule
+    1 & 15--19 Jan & Subject reading and detailing of project plan. \\
+    & & Finalize administrative tasks. \\
+    & & Begin writing report. \\
+    \midrule
+    2 & 22--26 Jan & Write background of report. \\
+    & & Continue subject reading. \\
+    \midrule
+    3 & 22--26 Jan & Begin implementation. \\
+    \midrule
+    4 & 29 Jan--2 Feb & Write method of report. \\
+    & & Continue implementation. \\
+    \midrule
+    5 & 5--9 Feb & Test implementation. \\
+    \midrule
+    6 & 12--16 Feb & Continue testing implementation. \\
+    & & Write results of report. \\
+    \midrule
+    7 & 19--23 Feb & Write implementation of report. \\
+    \midrule
+    8 & 26 Feb--2 Mar & Reflect on original questions. \\
+    & & \emph{Possible trip home to Värmland.} \\
+    \midrule
+    9 & 5--9 Mar & Write conclusion of report. \\
+    & & Write discussion of report. \\
+    & & Write abstract/summary of report. \\
+    \midrule
+    10 & 12--16 Mar & Finalize report. \\
+    & & Prepare for presentations. \\
+    \midrule
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+\end{document}
