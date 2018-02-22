@@ -1,0 +1,67 @@
+\section{Introduction}
+
+This thesis presents a Haskell implementation of the iPMCMC sampler for Bayesian inference in the probabilistic programming DSL Monad-Bayes.
+
+\subsection{Background}
+
+\subsubsection{Probabilistic programming}
+\label{sec:pprog}
+
+This paradigm leverages the expressiveness and familiarity of programming
+languages  to define statistical models. In addition, separating models from inference allows the models to be composable.
+
+Central to all probabilistic languages is the ability to construct more
+complex models using simpler building blocks, usually primitive distributions
+and use Bayesian filtering. Consider the problem of rolling two dice and reading the result of
+the first die \emph{given that the sum is larger than 5}. The outcome of a die is
+assumed to be uniformly 1 through 6.
+In the Monad-Bayes DSL (see section~\ref{sec:mbayes}) this may be
+expressed as
+\begin{minted}{Haskell}
+dice :: MonadInfer m => m Int
+dice = do
+  a <- uniformD [1..6]
+  b <- uniformD [1..6]
+  condition (a + b > 7)
+  return a
+\end{minted}
+which is very close to the actual problem description. Since the model is
+discrete we may enumerate all possibilities and get the exact distribution at
+the cost of exponential complexity.
+
+\begin{center}
+  
+  \begin{tabular}{crrrrrr}
+    \toprule
+    \midrule
+    $a$ & $\Pr(a)$ \\
+    \midrule
+    1&0.00 \\
+2&0.07 \\
+3&0.13\\
+4&0.20 \\
+5&0.27\\
+6&0.33\\
+\midrule
+\bottomrule
+  \end{tabular}
+\end{center}
+This thesis will focus on more efficient but approximative sampling-based
+methods.
+
+In the design of a probabilistic language the main trade-off is between
+expressiveness and performance of inference. A restricted language like
+BUGS~\cite{bugs} makes the inference simpler. In Universal
+(Turing-complete) languages like Anglican~\cite{anglican} and
+Monad-Bayes~\cite{mbayes} the inference is more challenging.
+
+\subsubsection{Bayesian inference}
+
+The distributions of stochastic models are often complicated and analytically
+intractable. To efficiently approximate the distribution of such models several
+methods have been proposed in literature. This paper focuses on sampling-based
+methods of the Markov Chain Monte Carlo (MCMC) kind~\cite{mcmc}, in particular sequential
+methods based on importance sampling (SMC)~\cite{smcgordon,smcdoucet} suitable
+for probabilistic programs~\cite{wood}.
+
+

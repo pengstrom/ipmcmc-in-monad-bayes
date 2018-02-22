@@ -1,0 +1,12 @@
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+.refresh
+*.log
+_minted-thesis
+*.bbl
+*.blg
+*.pdf
+*.synctex.gz
+*.swp

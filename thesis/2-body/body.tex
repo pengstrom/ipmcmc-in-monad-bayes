@@ -1,0 +1,241 @@
+\section{Theory}
+
+This section contains the necessary theory behind inference and probabilistic programs as well as details how the Monad-Bayes library works and a description of the iPMCMC method.
+
+\subsection{Inference on probabilistic programs}
+\label{sub:inference_on_probabilistic_programs}
+
+\begin{figure}[h!]
+\begin{center}
+\begin{tikzpicture}[scale=1, transform shape]
+    \node[draw] (x0) {$x_0$};
+    \node[draw, right=of x0] (x1) {$x_1$};
+    \node[draw, right=of x1] (x2) {$x_2$};
+    \node[right=of x2] (x3) {$\cdots$};
+
+    \node[draw, circle, below=2em of x1] (y1) {$y_1$};
+    \node[draw, circle, below=2em of x2] (y2) {$y_2$};
+
+    \path[-stealth]
+    (x0) edge node[above] {$f$} (x1)
+    (x1) edge  (x2)
+    (x2) edge  (x3)
+    (x1) edge node[right] {$g$} (y1)
+    (x2) edge  (y2);
+
+    \begin{pgfonlayer}{background}
+        \filldraw [line width=5mm,join=round,brown!20] (x0.north west) ++ (-2mm,2mm) rectangle
+        (y2.south -| x3.east);
+    \end{pgfonlayer}
+\end{tikzpicture}
+\end{center}
+\caption{A diagram of a hidden markov process.}
+\label{fig:hmm}
+\end{figure}
+
+The MCMC methods are based on hidden Markov models. This is a construct of some hidden state $x_t$ evolving by some known process $f(x_t \mid x_{t-1})$ and $\mu(x_0)$ where both functions should be seen as distributions. In other words, the value of $x_t$ is not known, but the underlying process is. In addition some observations $y_t$ \emph{are} known together with their emission process $g(y_t \mid x_t)$. By comparing the measured values $y_t$ with their distribution $g$ and proposed hidden values $x_t$ it is possible to score the proposals and use the scores $w_t$ to find the most likely values.
+
+\begin{figure}[h!]
+\begin{center}
+\begin{tikzpicture}[scale=1, transform shape,node distance=0.5em]
+    \node[minimum width=10em,minimum height=3em,draw] (x1) {program $f$};
+    \node[minimum width=10em,draw,below=of x1,inner sep=2mm] (y1) {score $g$};
+    \node[minimum width=10em,minimum height=3em,draw,below=of y1] (x2) {program $f$};
+    \node[minimum width=10em,draw,below=of x2,inner sep=2mm] (y2) {score $g$};
+    \node[minimum width=10em,minimum height=3em,draw,below=of y2] (x3) {program $f$};
+
+    \node[left=of x1] {$x_1$};
+    \node[left=of x2] {$x_2$};
+    \node[left=of x3] (xx3) {$x_3$};
+
+    \node[right= of y1] (w1) {$w_1$};
+    \node[right= of y2] (w2) {$w_2$};
+
+    \node[below=of x3] (dots) {$\vdots$};
+
+    \path[->]
+    (y1) edge (w1)
+    (y2) edge (w2);
+
+    \begin{pgfonlayer}{background}
+        \filldraw [line width=5mm,join=round,brown!20] (x1.north -| w1.east) ++ (0,3mm) rectangle
+        (dots.south -| xx3.west);
+    \end{pgfonlayer}
+\end{tikzpicture}
+\end{center}
+\caption{A program seen as a hidden Markov model.}
+\label{fig:hmmprog}
+\end{figure}
+
+
+In the context of models expressed as probabilistic programs the time aspect is more accurately viewed as the execution of the program. As the program executes random variables are sampled and combined. This corresponds to $f$ above. The program is interrupted at various points by scoring the current execution path, possibly depending on the sampled values. This is the scoring and the method for determining the score is model-dependent on $g$. These scorings separates the programs into parts, the $x_t$'s.
+
+\subsubsection{SMC and CSMC}
+\label{ssub:smc_and_csmc}
+
+
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[node distance=1em,scale=1, transform shape,smcnode/.style={circle,draw,inner sep=1mm}]
+    \matrix (m) [matrix of nodes,nodes in empty cells, nodes={smcnode}, row sep=2em, column sep=2em]
+    {  &  & \node[draw=none] {$\cdots$};  &  \\
+       &  & \node[draw=none] {$\cdots$};  &  \\
+       &  & \node[draw=none] {$\cdots$};  &  \\
+      \node[draw=none] {$\vdots$}; &\node [draw=none]{$\vdots$}; & \node[draw=none] {}; & \node [draw=none]{$\vdots$}; \\
+      };
+
+      \path[-stealth]
+      (m-3-4) edge ++(0,-3em)
+      (m-3-2) edge ++(0,-3em)
+      (m-3-1) edge ++(0,-3em)
+      (m-2-4) edge (m-3-4)
+      (m-2-4) edge (m-3-2)
+      (m-2-1) edge (m-3-1)
+      (m-1-4) edge (m-2-4)
+      (m-1-1) edge (m-2-2)
+      (m-1-2) edge (m-2-1);
+
+      \node[left=of m-1-1] {$x_1$};
+      \node[left=of m-2-1] {$x_2$};
+      \node[left=of m-3-1] {$x_3$};
+
+      \node[above=of m-1-1] {$1$};
+      \node[above=of m-1-2] {$2$};
+      \node[above=of m-1-4] {$N$};
+
+    \begin{pgfonlayer}{background}
+        \filldraw [line width=5mm,join=round,brown!20] (m.north west) ++ (-2em,1em) rectangle
+        (m.south east);
+    \end{pgfonlayer}
+\end{tikzpicture}
+\end{center}
+\caption{Possible execution of SMC.}
+\label{fig:smc}
+\end{figure}
+
+In SMC we run the program several times, say N particles, and the execution is interrupted at each scoring and resampling is performed based on the scores $w_{t,1:N}$ according to
+\begin{equation}
+    x_t^i \sim f(x_t^i \mid x_{t-1}^{a_{t-1}^i})
+\end{equation}
+where $\Pr(a_{t-1}^i = \ell \mid w_{t-1,1:N}) = w_{t-1,\ell}$. That is, execution is not necessarily continued from where it left off, but an ancestor is chosen at random, weighted on its score. This continues until the program is completed at time $t=T$.
+
+A variant of SMC called conditional sequential Monte Carlo (CSMC) uses an previous trajectory $x'_{1:T}$ to influence the resampling. In the resampling step, the conditional trajectory is not itself resampled. Instead only the other particles are, including from conditional trajectory.
+
+A popular sampler using CSMC is Particle Gibbs (PG). Here several CSMC sweeps are run where the conditional trajectories are chosen from the surviving trajectories of the previous sweep, weighted on final score $w_T^i$.
+
+\subsection{Monad-Bayes}
+\label{sec:mbayes}
+
+The Haskell DSL~\cite{mbayes} aims to provide an universal probabilistic
+framework in the functional language Haskell. Monad-Bayes supports both
+discrete and continuous variables and it's inference performance is comparable to that of
+Anglican and Prob-C. The actual library is yet to be released but is already
+available\footnote{\url{https://github.com/adscib/monad-bayes}}. The upcoming release
+will be based on the \texttt{simple} branch and this is the
+version\footnote{Commit \texttt{59a50b1}.} this thesis uses.
+
+The \texttt{simple} branch differs from the implementation discussed in the
+paper. The major change is a move from generalized abstract data structures
+(GADT's) to only using type classes. The relevant type classes are
+\texttt{MonadSample} for monads supporting drawing random values and
+\texttt{MonadCond} for monads supporting scoring execution paths. In addition a third type class
+\texttt{MonadInfer} exists for monads supporting both.
+
+The \texttt{MonadSample} type class includes methods for drawing values from
+several continuous and discreete distributions but the minimal implementation is
+a single function
+\begin{minted}{Haskell}
+class Monad m => MonadSample m
+where
+  random :: m Double
+  \end{minted}
+for drawing a value uniformly on the interval $[0,1]$. The second type class
+defines a single function
+\begin{minted}{Haskell}
+class Monad m => MonadCond m
+where
+  score :: Log Double -> m ()
+  \end{minted}
+for scoring the execution path. The previously mentioned function
+\texttt{condition} in section~\ref{sec:pprog} is defined as
+\begin{minted}{Haskell}
+condition :: MonadCond m
+  => Bool
+  -> m ()
+condition b = if b
+  then score 1 else score 0
+\end{minted}
+using \texttt{score}. 
+
+Models in Monad-Bayes have the type
+\begin{minted}{Haskell}
+model :: MonadInfer m => m a
+\end{minted}
+for a model returning a value of type \texttt{a}. An inference method will transform the model into a sampleable list of values and accumulated scores
+\begin{minted}{Haskell}
+infer ::
+  ( MonadInfer m
+  , MonadSample n
+  )
+  => m a
+  -> n [(a, Log Double)]
+\end{minted}
+so the actual result of the inference may be collected by sampling at the very last step. The library treats inference methods as transformations of distributions that strips it of conditionals (scoring). By using a type constraint there may be choice involved in interpreting the model allowing for flexibility of different inference methods.
+
+There are only two instances of \texttt{MonadSample} directly, \texttt{SamplerIO} and \texttt{SamplerST}. The first sourcing its randomness from the world and the second from it's implicit state. The library defines several monad transformers having instances of \texttt{MonadSample} and \texttt{MonadCond} (possibly depending on the inner monad). A monad
+\begin{minted}{Haskell}
+newtype Weighted m a =
+  Weighted
+    (StateT (Log Double) m a)
+\end{minted}
+for accumulating likelihood with the instance
+\begin{minted}{Haskell}
+instance Monad m
+  => MonadCond (Weighted m)
+where
+  score w =
+    Weighted (modify (* w))
+\end{minted}
+simply multiplying the observed scores. A more complicated transformer
+\begin{minted}{Haskell}
+newtype Population m a =
+  Population
+    (Weighted (ListT m) a)
+\end{minted}
+is used for a population of particles. The \texttt{ListT} transformer adds non-determinism for running the program several times independently and \texttt{Weighted} provides sampling and scoring.
+
+For sequential methods a transformer
+\begin{minted}{Haskell}
+newtype Sequential m a =
+  Sequential
+    (Coroutine (Await ()) m a)
+\end{minted}
+based on coroutines is provided. It is made an instance of \texttt{MonadCond} by scoring in the underlying monad and then suspending. The inner monad may then be transformed (by for example resampling) before resuming.
+
+\subsection{iPMCMC}
+
+The PG sampler mentioned in section~\ref{ssub:smc_and_csmc} and similar SMC-based samplers suffer from path degeneracy due to the frequent resampling. To acquire good results, a large number of particles is needed which may be infeasible. The iPMCMC sampler aims to alleviate this issue by switching out a CSMC sweep with an independent SMC sweep the next generation for improved mixing.
+
+The iPMCMC sampler runs $M$ nodes indexed $m = 1,\dots,M$ of which $P$ nodes are CSMC and the rest SMC. A conditional node $j$ is identified by $c_j \in \{1,\dots,M\}$. The nodes are run $R$ MCMC iterations. At the first iteration all nodes run SMC since no conditional trajectories are yet available.
+
+Each node $m$ returns returns an estimate of the marginal likelihood
+\begin{equation}
+    \hat Z_m = \prod\limits_{t=1}^T \frac 1 N \sum\limits_{i=1}^N w_{t,m}^i
+\end{equation} and its internal trajectories
+\begin{equation}
+t_m = \{\{(x^i_{t,m},w^i_{t.m})\}_{t=1}^T\}_{i=1}^N
+\end{equation}
+for use in choosing conditionals. For each MCMC iteration $r$ nodes $1:M \setminus c_{1:P}$ run SMC and nodes $c_{1:P}$ run CSMC using $x'_{1:P}[r-1]$. 
+
+The result is the conditional trajectories $x'_j[r]$ for each conditional node $j$ and MCMC iteration $r$. A function $f(x)$ may be estimated by
+\begin{equation}
+    \mathbb{E}[f(x)] = \frac 1 {RP} \sum\limits_{r=1}^R \sum\limits_{j=1}^P f(x'_j[r])
+\end{equation}
+Since the nodes only exchange information between MCMC iterations there is ample room for paralellisation.
+
+\section{Method}
+\subsection{Implementation}
+
+\section{Results}
+\subsection{Comparisons}
