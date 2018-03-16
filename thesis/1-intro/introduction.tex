@@ -1,53 +1,22 @@
 \section{Introduction}
 
+Bayes' theorem
+\begin{equation}
+    P(\theta\mid D) = \frac {P(\theta) P(D \mid \theta)}{P(D)}
+\end{equation}
+about conditional probability is well-known from any introductory course on the subject. It expresses how one's prior believed distribution of $\theta$ ($P(\theta)$) is updated given observations $D$ into a posterior belief $P(\theta\mid D)$. The likelihood $P(D \mid \theta)$ represents the probaility of generating the observation $D$ given a particular $\theta$. The merginal likelihood $P(D)$ acts as normalisation to ensure the distributon is valid.
+
+The distribution of the posterior is valuable as it enables prediction from observations. However, unless the prior and likelihood are simple disributions then the posterior is often intractable~\cite{barber} requiring numerical methods. One approach for approximating complicated posteriors is the family of MCMC  methods~\cite{robert}. The Particle Markov chain Monte Carlo methods by Andrieu et al.~\cite{pmcmc}, and in particular the Gibbs (PG) sampler, aims to improve the proposals for the MCMC sampler by using importance sampling in the form of sequential Monte Carlo (SMC)~\cite{smc}. The PG sampler uses a modifid SMC sampler conditioned on an existing particle trajectory, conditional SMC (CSMC).
+
+The CSMC sampler is prone to path degeneracy. If the resampling collapses then, by design, only the conditional trajectory remains, reducing the mixing required for a healthy MCMC step. Rainforth et al.~\cite{ipmcmc} proposes a solution calle Interacting Particle Markov Chain Monte Carlo (IPMCMC) where several CSMC and SMC sampler are run in parallel. By sampling the conditonal trajectories possibly from independent (unconditional) SMC sampers the mixing is improved. In addition, the nodes only interact briefly promising a high degree of parallelisation.
+
 This thesis presents a Haskell implementation of the iPMCMC sampler for Bayesian inference in the probabilistic programming DSL Monad-Bayes.
 
-\subsection{Background}
-
-\subsubsection{Probabilistic programming}
+\subsection{Probabilistic programming}
 \label{sec:pprog}
 
-This paradigm leverages the expressiveness and familiarity of programming
-languages  to define statistical models. In addition, separating models from inference allows the models to be composable.
-
-Central to all probabilistic languages is the ability to construct more
-complex models using simpler building blocks, usually primitive distributions
-and use Bayesian filtering. Consider the problem of rolling two dice and reading the result of
-the first die \emph{given that the sum is larger than 5}. The outcome of a die is
-assumed to be uniformly 1 through 6.
-In the Monad-Bayes DSL (see section~\ref{sec:mbayes}) this may be
-expressed as
-\begin{minted}{Haskell}
-dice :: MonadInfer m => m Int
-dice = do
-  a <- uniformD [1..6]
-  b <- uniformD [1..6]
-  condition (a + b > 7)
-  return a
-\end{minted}
-which is very close to the actual problem description. Since the model is
-discrete we may enumerate all possibilities and get the exact distribution at
-the cost of exponential complexity.
-
-\begin{center}
-  
-  \begin{tabular}{crrrrrr}
-    \toprule
-    \midrule
-    $a$ & $\Pr(a)$ \\
-    \midrule
-    1&0.00 \\
-2&0.07 \\
-3&0.13\\
-4&0.20 \\
-5&0.27\\
-6&0.33\\
-\midrule
-\bottomrule
-  \end{tabular}
-\end{center}
-This thesis will focus on more efficient but approximative sampling-based
-methods.
+One promising way to express statistical models, and in particular Bayesian probems is probabilistic programming~\cite{dippl}. This paradigm leverages the expressiveness and familiarity of programming
+languages  to define models indepenently of inferece, allowing the models to be composable.
 
 In the design of a probabilistic language the main trade-off is between
 expressiveness and performance of inference. A restricted language like
@@ -55,13 +24,79 @@ BUGS~\cite{bugs} makes the inference simpler. In Universal
 (Turing-complete) languages like Anglican~\cite{anglican} and
 Monad-Bayes~\cite{mbayes} the inference is more challenging.
 
-\subsubsection{Bayesian inference}
+Central to all probabilistic languages is the ability to construct more
+complex models using simpler building blocks, usually primitive distributions
+and use Bayesian filtering. Consider the problem of regression of some complicated function $y = f(\theta;x)$ parameterised by a parameter $\theta > 0$ and observations $D = \{ (x_i,y_i) \}_{i=1}^N$ influenced by some normal noise $\delta \sim \operatorname{Norm}(0,1)$ such that
+\begin{equation}
+   y_i = f(\theta;x_i) + \delta .
+\end{equation}
+In Bayesian modelling, we want to find the distribution for the parameter $\theta$ given the data $D$, i.e. $P(\theta \mid D)$. If the function is implemented as
+\begin{minted}{Haskell}
+f :: Double -- theta
+  -> Double -- x
+  -> Double -- y
+\end{minted}
+then assuming a prior $P(\theta) \sim \operatorname{Gamma}(1,1)$, the model is also a function taking the list of observations
+\begin{minted}{Haskell}
+reg :: MonadInfer m
+  => [(Double,Double)] -- Observations
+  -> m Double
+reg obs = do
+  let fun = f theta
+      sigma = 1
+  theta <- gamma 1 1
+  forM obs (\ (x,y) -> do
+    let mu = fun x
+        p = normalPdf mu sigma y
+    score p)
+  return theta
+\end{minted}
+where we for each observation score based on how close the parameter makes the function match the data, skewing the prior distibution favouring values close to where the error is small. Note how the formulation closely matches the mathematical definition. This thesis will focus on efficient but approximative sampling-based
+methods for finding the distribution in such problems.
 
-The distributions of stochastic models are often complicated and analytically
-intractable. To efficiently approximate the distribution of such models several
-methods have been proposed in literature. This paper focuses on sampling-based
-methods of the Markov Chain Monte Carlo (MCMC) kind~\cite{mcmc}, in particular sequential
-methods based on importance sampling (SMC)~\cite{smcgordon,smcdoucet} suitable
-for probabilistic programs~\cite{wood}.
+%Consider the problem of rolling two dice and reading the result of
+%the first die \emph{given that the sum is larger than 5}. The outcome of a die is
+%assumed to be uniformly 1 through 6.
+%In the Monad-Bayes DSL (see section~\ref{sec:mbayes}) this may be
+%expressed as
+%\begin{minted}{Haskell}
+%dice :: MonadInfer m => m Int
+%dice = do
+  %a <- uniformD [1..6]
+  %b <- uniformD [1..6]
+  %condition (a + b > 7)
+  %return a
+%\end{minted}
+%which is very close to the actual problem description. Since the model is
+%discrete we may enumerate all possibilities and get the exact distribution at
+%the cost of exponential complexity.
+%
+%\begin{center}
+  %
+  %\begin{tabular}{crrrrrr}
+    %\toprule
+    %\midrule
+    %$a$ & $\Pr(a)$ \\
+    %\midrule
+    %1&0.00 \\
+%2&0.07 \\
+%3&0.13\\
+%4&0.20 \\
+%5&0.27\\
+%6&0.33\\
+%\midrule
+%\bottomrule
+  %\end{tabular}
+%\end{center}
+
+
+%\subsubsection{Bayesian inference}
+
+%The distributions of stochastic models are often complicated and analytically
+%intractable. To efficiently approximate the distribution of such models several
+%methods have been proposed in literature. This paper focuses on sampling-based
+%methods of the Markov Chain Monte Carlo (MCMC) kind~\cite{mcmc}, in particular sequential
+%methods based on importance sampling (SMC)~\cite{smcgordon,smcdoucet} suitable
+%for probabilistic programs~\cite{wood}.
 
 

@@ -221,6 +221,7 @@ The iPMCMC sampler runs $M$ nodes indexed $m = 1,\dots,M$ of which $P$ nodes are
 
 Each node $m$ returns returns an estimate of the marginal likelihood
 \begin{equation}
+    \label{eq:zm}
     \hat Z_m = \prod\limits_{t=1}^T \frac 1 N \sum\limits_{i=1}^N w_{t,m}^i
 \end{equation} and its internal trajectories
 \begin{equation}
@@ -235,7 +236,156 @@ The result is the conditional trajectories $x'_j[r]$ for each conditional node $
 Since the nodes only exchange information between MCMC iterations there is ample room for paralellisation.
 
 \section{Method}
-\subsection{Implementation}
+
+The Monad-Bayes framework contains many components to design models and inference engines.
+In particular it already contains an SMC sampler.
+However, the sampler does not support providing either the estimated marginal likelihood $\hat Z$ or internal trajectories required to condition the CSMC sampler.
+Therefore a custom SMC sampler is required.
+
+Using resampling requires the ability to resume a computation.
+One solution is  controlling the randomness and then continue with a specific randomness.
+If the random variables are assigned the same values then the result will be the same.
+This requires significant bookkeeping and needs a custom sampler to instance the \texttt{MonadSample} type class.
+Another solution would be to use coroutines.
+Here the calculation may be suspended arbitrarily and resumed at will, simplifying the implementation.
+This is what the \texttt{Sequential} monad uses.
+
+The current SMC sampler is based on the \texttt{Sequential} monad and performs a transformation on the inner monad after each step to implement resampling.
+The custom SMC sampler would have a complicated inner monad to track both the marginal likelihood and all trajectories.
+To avoid a complex and potentially expensive transformation after each step the state is instead kept separate and use the \texttt{Coroutine} monad directly to control the execution.
+By using the \texttt{MonadSample} instance of the base monad and yielding the score at each suspension we also have a \texttt{MonadCond} instance.
+
+To simplify the implementation, the models are required to have the same number of scorings in each execution path. This is equivalent to the columns of figure~\ref{fig:smc} always being the same length, i.e. terminating at the same time. The resampling is then greatly simplified by not having to consider the edge case where some particles are already finished.
+
+In summary we represent the model as a coroutine that is advanced to the next scoring, yielding the score $w$. The score is used for resampling and updating the marginal likelihood $\hat Z$ which are kept externally. Finally the trajectories and marginal likelihood are returned.
+
+\subsection{SMC and CSMC implementation}
+
+To simplify the types, several type synonymes are introduced. To represent the model a type
+\begin{minted}{Haskell}
+type CSMC m a =
+  Coroutine
+    (Yield (Log Double))
+    m a
+\end{minted}
+is used to add suspension via the \texttt{Coroutine} monad. After each scoring the coroutine suspends and yields the score $w$. The monad \texttt{m} will normally be \texttt{SampleIO}. A \texttt{Trace}, defined as
+\begin{minted}{Haskell}
+type Trace m a =
+  ( Either (CSMC m a) a
+  , Log Double)
+\end{minted}
+is a snaphot of the program execution, paused at a scoring. It contains the rest of the program (or its value) and the accumulated score up to this point.
+The traces are collected into a list
+\begin{minted}{Haskell}
+type Trajectory m a = [Trace m a]
+\end{minted}
+representing a particle trajectory. The internal state of the CSMC sampler 
+\begin{minted}{Haskell}
+type SMCState m a =
+  ( Vector (Trajectory m a)
+  , Log Double)
+\end{minted}
+hold an array of its particle trajectories and the estimated marginal likelihood.
+
+The signature of the CSMC function is
+\begin{minted}{Haskell}
+csmc :: MonadSample m
+  => Trajectory m a -- ^ x'
+  -> Int -- ^ N
+  -> CSMC m a -- ^ Model
+  -> m (SMCState m a)
+\end{minted}
+where in addition to the model the number of particles $N$ and the conditional trajectory are supplied. To simplify the implementation, only \texttt{SMCState}'s where either all or no trajectories simultaneously are finished are considered valid. This means the supplied model must have the same number of scorings in every execution path. This constraint is not impossible to remove but was introduced to reduce implementation duration.
+The function simply initiates the state and calls a helper function \texttt{csmsHelper}
+\begin{minted}{Haskell}
+csmcHelper ::
+   MonadSample m
+=> Maybe (Trajectory m a, Trajectory m a)
+-> SMCState m a
+-> m (SMCState m a)
+\end{minted}
+common for both CSMC and SMC. The first argument represents the conditional trajectory split on the current suspension, initially one empty. It is \texttt{Nothing} for SMC denoting no conditional trajectory. The second argument is the carried state, initially only the model with weight and marginal likelihood 1. To advance, a \texttt{stepPop} function is repeatadly applied until the model is finished (end of program).
+
+To step the population of particles with the model a separate function
+\begin{minted}{Haskell}
+step :: MonadSample m
+  => CSMC m a
+  -> m (Trace m a)
+\end{minted}
+advances the model of a single particle, returning the continuation of the program and the score. It is used in the function
+\begin{minted}{Haskell}
+stepPop :: MonadSample m
+  => Maybe (Trajectory m a)
+  -> SMCState m a
+  -> m (SMCState m a)
+\end{minted}
+taking the optional trajectory, the current state and returns the new state. Each particle is advanced once and then multinomial resampling is performed. In addition, the marginal likelihood $Z_m$ is updated by multiplying with the mean of the latest scores according to equation~\ref{eq:zm}. The resampling is conditioned on the given trajectory if it exists.
+
+\subsection{iPCMCMC implementation}
+\label{sub:ipcmcmc_implementation}
+
+Again, type synonymes are used to simplify the signatures. The result of \texttt{ipmcmc}
+\begin{minted}{Haskell}
+type IPMCMCResult a = [V.Vector a]
+\end{minted}
+is a list of the values of the conditional trajectories for each iteration. It is isomorphic to a $R\times P$ matrix. The inner state of the algorithm
+\begin{minted}{Haskell}
+data IPMCMCState m a = IPMCMCState
+  { numnodes :: Int -- M
+  , numcond  :: Int -- P
+  , nummcmc  :: Int -- R
+  , conds    :: V.Vector (Trajectory m a) 
+  , result   :: IPMCMCResult a 
+  , smcnode  :: m (SMCState m a) 
+  , csmcnode ::
+    Trajectory m a -> m (SMCState m a) 
+  }
+\end{minted}
+contains the total number of nodes $M$, the number of conditional nodes $P$, remaining MCMC iterations $R$, the chosen conditional trajectories to be used for the next iteration, the accumulated result and two funcitons, aliases for \texttt{smc} and \texttt{csmc} respectively using the supplied model and number of particles $N$.
+
+At the top is the actual sampler
+\begin{minted}{Haskell}
+ipmcmc :: (MonadFork m, MonadSample m)
+  => Int -- N
+  -> Int -- M
+  -> Int -- R
+  -> CSMC m a
+  -> m (IPMCMCResult a)
+\end{minted}
+taking the number of particles per node $N$, the number of nodes $M$ and number of MCMC iterations $R$ in addition to the model. The \texttt{MonadFork} constraint enables concurrent evaluation on the monad. Rainforth et al.~\cite{ipmcmc} found that $P = M/2$ is the optimal number of conditional nodes which is used here. In the first iteration there are no conditional trajectoried available, and unconditional SMC is used for all nodes in the first iteration. Using \texttt{replicateM}, \texttt{forM} and \texttt{forkExec} from the \texttt{Control.Monad.Parallel} package the nodes are evaluated in parallel.
+
+The MCMC step
+\begin{minted}{Haskell}
+mcmcStep :: MonadSample m
+  => V.Vector (SMCState m a) 
+  -> V.Vector (SMCState m a)
+  -> Int
+  -> [Trajectory m a]
+  -> m (V.Vector (Trajectory m a))
+\end{minted}
+takes the results of the conditional and unconditional nodes and two stack-allocated recursion values, \texttt{0} and \texttt{[]}. The former is the first index of the unconditional nodes and the latter the list of sampled conditional trajectories. Returned are the next conitional trajectories. For each conditional node $j$ a representative of the union of $j$ and every conditional node is taken, weighted on $\hat Z_m$ according to
 
 \section{Results}
+
+To evaluate the implemented method it is tested for correctness and performance. Correctness may be demonstated by comparing the results obtained fron the method with the exact posterior distribution. The model is the simple dice model
+\begin{minted}{Haskell}
+dice_soft :: MonadInfer d => d Int
+dice_soft = do
+  let die = uniformD [1..6]
+  result <- liftM2 (+) die die
+  factor (1 / fromIntegral result)
+  return result
+\end{minted}
+rolling two dice and conditioning it with a likelihood that is the reciprocal of the result. The models simplicity allows for calculating the exact posterior via exhaustive enumeration and performant testing. The dissimilarity between the distributions is measured by the standard metric KL divergence~\cite{kl} defined by
+\begin{equation}\label{eq:kl}
+    D_{\mathrm{KL}} (P \parallel Q) = - \sum\limits_i P(i) \log \frac {Q(i)}{P(i)}
+\end{equation}
+for the divergence from $Q$ (the truth) to $P$ (the result) and $P(i)$ and $Q(i)$ are the probability of the samples. For a correct method the error should decay according to a power law, giving a straight line in a log-log plot.
+
+First, the custom SMC sampler is compared to the existing SMC sampler of Monad-Bayes. 
+
+For evaluation we choose $M=32$, $N=100$ and $R=1000$ where $M$ and $N$ are the same as the evaulation in the original article and $R$ is chosen to keep the testing time reasonable. The sampler returns a list of samples for each iteration, allowing calculation of the error for any number of iterations $r=1,\dots,R$ by taking the first $r$ elements of the result. For each $r$ the KL divergence is calulated according to equation~\ref{eq:kl}. To stabilize the results, the sampler is run 10 times and for each $r$ a 95\% confidence interval for the error is obtained. The result is given in figure~\ref{fig:corr}.
+
+For performance evaluation the sampler is timed and the error is 
+
 \subsection{Comparisons}
