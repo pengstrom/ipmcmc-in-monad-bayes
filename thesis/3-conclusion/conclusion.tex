@@ -1,3 +1,16 @@
 \section{Conclusion}
+
+This thesis shows that the approach by aggresively parallelising simpler samplers for use in MCMC methods is fruitful, evident by the performace comparison in figure~\ref{fig:corr} and the parallelisation analysis in section~\ref{ssub:parallelisation}. However the implementation of such methods are prone to error. The coordination of the many samplers is sensitive and great care have to be taken to not introduce bugs when implementing a procedure in functional code.
+
 \subsection{Limitations}
+\label{sec:limits}
+
+The iPMCMC method implemented in this thesis is simplified. As written it only supports a subset of the models expressable in Monad-Bayes. To simplfy the resampling, only models containg the same number of scorings in every possible execution path are supported. In addition, the article by Rainforth et al. describes an approach for using all $MN$ generated trajectories each iteration instead of just $P$ trajectories. Finally the implementation could be made more performant. The pure nature of Haskell results much copying of data, but batched updates may be sped up in a safe way by performing mutation in the ST monad~\cite{stmonad}.
+
+The evaluation only compares the implementation with samplers found in Monad-Bayes, in particular a comparison to other MCMC methods is missing. Another attractive comparison would be to the iPMCMC implementation in Anglican. Another aspect of the tests is the simplicity of the model. The models was chosen both because it has an exact calculatable posterior but also because it is fast. More complicated models, for example hidden Markov models, exists where the posterior is known.
+
 \subsection{Future}
+
+The points brought up on the previous section could be addressed in the future. More time could be spent on the implementation to eliminate the bugs and artifical limitations and truly evaluate the iPMCMC method in Monad-Bayes. 
+
+The evaluation could be made more complete by comparing to additional methods and other probailistic programming languages. More models could also be tested to see if the trends apparent for the simple model carries over to more complex models.

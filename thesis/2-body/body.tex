@@ -24,7 +24,7 @@ This section contains the necessary theory behind inference and probabilistic pr
     (x2) edge  (y2);
 
     \begin{pgfonlayer}{background}
-        \filldraw [line width=5mm,join=round,brown!20] (x0.north west) ++ (-2mm,2mm) rectangle
+        \filldraw [line width=5mm,join=round,sbase3] (x0.north west) ++ (-2mm,2mm) rectangle
         (y2.south -| x3.east);
     \end{pgfonlayer}
 \end{tikzpicture}
@@ -33,7 +33,7 @@ This section contains the necessary theory behind inference and probabilistic pr
 \label{fig:hmm}
 \end{figure}
 
-The MCMC methods are based on hidden Markov models. This is a construct of some hidden state $x_t$ evolving by some known process $f(x_t \mid x_{t-1})$ and $\mu(x_0)$ where both functions should be seen as distributions. In other words, the value of $x_t$ is not known, but the underlying process is. In addition some observations $y_t$ \emph{are} known together with their emission process $g(y_t \mid x_t)$. By comparing the measured values $y_t$ with their distribution $g$ and proposed hidden values $x_t$ it is possible to score the proposals and use the scores $w_t$ to find the most likely values.
+A hidden Markov model is a construct of some hidden state $x_t$ evolving by some known process $f(x_t \mid x_{t-1})$ and $\mu(x_0)$ where both functions should be seen as distributions. In other words, the value of $x_t$ is not known, but the underlying process is. In addition, some observations $y_t$ \emph{are} known together with their emission process $g(y_t \mid x_t)$, see figure~\ref{fig:hmm}. By comparing the measured values $y_t$ with their distribution $g$ and proposed hidden values $x_t$ it is possible to score the proposals and use the scores $w_t$ to find the most likely values.
 
 \begin{figure}[h!]
 \begin{center}
@@ -58,7 +58,7 @@ The MCMC methods are based on hidden Markov models. This is a construct of some 
     (y2) edge (w2);
 
     \begin{pgfonlayer}{background}
-        \filldraw [line width=5mm,join=round,brown!20] (x1.north -| w1.east) ++ (0,3mm) rectangle
+        \filldraw [line width=5mm,join=round,sbase3] (x1.north -| w1.east) ++ (0,3mm) rectangle
         (dots.south -| xx3.west);
     \end{pgfonlayer}
 \end{tikzpicture}
@@ -68,7 +68,7 @@ The MCMC methods are based on hidden Markov models. This is a construct of some 
 \end{figure}
 
 
-In the context of models expressed as probabilistic programs the time aspect is more accurately viewed as the execution of the program. As the program executes random variables are sampled and combined. This corresponds to $f$ above. The program is interrupted at various points by scoring the current execution path, possibly depending on the sampled values. This is the scoring and the method for determining the score is model-dependent on $g$. These scorings separates the programs into parts, the $x_t$'s.
+In the context of models expressed as probabilistic programs the time aspect is more accurately viewed as the execution of the program as seen in figure~\ref{fig:hmmprog}. As the program executes random variables are sampled and manipulated. This corresponds to $f$ above. The program is interrupted at various points by scoring the current execution path, possibly depending on the sampled values. This is the likelihood score and the method for determining the score is model-dependent on $g$. These scorings separates the programs into parts, the $x_t$'s.
 
 \subsubsection{SMC and CSMC}
 \label{ssub:smc_and_csmc}
@@ -105,7 +105,7 @@ In the context of models expressed as probabilistic programs the time aspect is 
       \node[above=of m-1-4] {$N$};
 
     \begin{pgfonlayer}{background}
-        \filldraw [line width=5mm,join=round,brown!20] (m.north west) ++ (-2em,1em) rectangle
+        \filldraw [line width=5mm,join=round,sbase3] (m.north west) ++ (-2em,1em) rectangle
         (m.south east);
     \end{pgfonlayer}
 \end{tikzpicture}
@@ -114,26 +114,26 @@ In the context of models expressed as probabilistic programs the time aspect is 
 \label{fig:smc}
 \end{figure}
 
-In SMC we run the program several times, say N particles, and the execution is interrupted at each scoring and resampling is performed based on the scores $w_{t,1:N}$ according to
+In SMC we run the program several times called particles, say N particles, and the execution is interrupted at each scoring and resampling is performed based on the scores $w_{t,1:N}$ according to
 \begin{equation}
     x_t^i \sim f(x_t^i \mid x_{t-1}^{a_{t-1}^i})
 \end{equation}
 where $\Pr(a_{t-1}^i = \ell \mid w_{t-1,1:N}) = w_{t-1,\ell}$. That is, execution is not necessarily continued from where it left off, but an ancestor is chosen at random, weighted on its score. This continues until the program is completed at time $t=T$.
 
-A variant of SMC called conditional sequential Monte Carlo (CSMC) uses an previous trajectory $x'_{1:T}$ to influence the resampling. In the resampling step, the conditional trajectory is not itself resampled. Instead only the other particles are, including from conditional trajectory.
-
-A popular sampler using CSMC is Particle Gibbs (PG). Here several CSMC sweeps are run where the conditional trajectories are chosen from the surviving trajectories of the previous sweep, weighted on final score $w_T^i$.
+A variant of SMC called conditional sequential Monte Carlo (CSMC) uses an supplied trajectory $x'_{1:T}$ to influence the resampling. The conditional trajectory always resamples from itself. A popular sampler using CSMC is the PG sampler.
+%Here several CSMC sweeps are run where the conditional trajectories are chosen from the surviving trajectories of the previous sweep, weighted on final score $w_T^i$.
+Several CSMC samplers are run in series, sampling the conditional trajectory from the surviving trajectories in the last step.
 
 \subsection{Monad-Bayes}
 \label{sec:mbayes}
 
-The Haskell DSL~\cite{mbayes} aims to provide an universal probabilistic
+The Haskell DSL aims to provide an universal probabilistic
 framework in the functional language Haskell. Monad-Bayes supports both
 discrete and continuous variables and it's inference performance is comparable to that of
 Anglican and Prob-C. The actual library is yet to be released but is already
 available\footnote{\url{https://github.com/adscib/monad-bayes}}. The upcoming release
 will be based on the \texttt{simple} branch and this is the
-version\footnote{Commit \texttt{59a50b1}.} this thesis uses.
+version\footnote{Commit \texttt{59a50b1}.} used in this thesis.
 
 The \texttt{simple} branch differs from the implementation discussed in the
 paper. The major change is a move from generalized abstract data structures
@@ -146,78 +146,61 @@ The \texttt{MonadSample} type class includes methods for drawing values from
 several continuous and discreete distributions but the minimal implementation is
 a single function
 \begin{minted}{Haskell}
-class Monad m => MonadSample m
-where
+class Monad m => MonadSample m where
   random :: m Double
   \end{minted}
 for drawing a value uniformly on the interval $[0,1]$. The second type class
 defines a single function
 \begin{minted}{Haskell}
-class Monad m => MonadCond m
-where
+class Monad m => MonadCond m where
   score :: Log Double -> m ()
   \end{minted}
-for scoring the execution path. The previously mentioned function
-\texttt{condition} in section~\ref{sec:pprog} is defined as
+for scoring the execution path. The combined typeclass
 \begin{minted}{Haskell}
-condition :: MonadCond m
-  => Bool
-  -> m ()
-condition b = if b
-  then score 1 else score 0
+class (MonadSample m, MonadCond m)
+  => Monadinfer m
 \end{minted}
-using \texttt{score}. 
-
+is simply for convenience.
 Models in Monad-Bayes have the type
 \begin{minted}{Haskell}
 model :: MonadInfer m => m a
 \end{minted}
-for a model returning a value of type \texttt{a}. An inference method will transform the model into a sampleable list of values and accumulated scores
+for a model returning a value of type \texttt{a}. These are not sampleable (if they were, we would already have the posterior). An inference method
 \begin{minted}{Haskell}
-infer ::
-  ( MonadInfer m
-  , MonadSample n
-  )
-  => m a
-  -> n [(a, Log Double)]
+infer :: (MonadInfer m, MonadSample n)
+  => m a -- Model
+  -> n b
 \end{minted}
-so the actual result of the inference may be collected by sampling at the very last step. The library treats inference methods as transformations of distributions that strips it of conditionals (scoring). By using a type constraint there may be choice involved in interpreting the model allowing for flexibility of different inference methods.
+will transform the model into a sampleable monad where the result depends of the method, but normally a list of values and their weight. The library treats inference methods as transformations of distributions that strips it of conditionals (scoring). The type constraint allow choice for interpreting the model and result, allowing for flexibility of different inference methods.
 
-There are only two instances of \texttt{MonadSample} directly, \texttt{SamplerIO} and \texttt{SamplerST}. The first sourcing its randomness from the world and the second from it's implicit state. The library defines several monad transformers having instances of \texttt{MonadSample} and \texttt{MonadCond} (possibly depending on the inner monad). A monad
+There are only three non-transformer instances of \texttt{MonadSample}: \texttt{SamplerIO}, \texttt{SamplerST} and \texttt{Enumerator}. The first sourcing its randomness from the world and the second from it's implicit state. The third monad only allows discrete distributions. The library defines several monad transformers having instances of \texttt{MonadSample} and \texttt{MonadCond} (possibly depending on the inner monad). A monad
 \begin{minted}{Haskell}
 newtype Weighted m a =
-  Weighted
-    (StateT (Log Double) m a)
+  Weighted (StateT (Log Double) m a)
 \end{minted}
 for accumulating likelihood with the instance
 \begin{minted}{Haskell}
 instance Monad m
-  => MonadCond (Weighted m)
-where
-  score w =
-    Weighted (modify (* w))
+  => MonadCond (Weighted m) where
+    score w = Weighted (modify (* w))
 \end{minted}
 simply multiplying the observed scores. A more complicated transformer
 \begin{minted}{Haskell}
 newtype Population m a =
-  Population
-    (Weighted (ListT m) a)
+  Population (Weighted (ListT m) a)
 \end{minted}
 is used for a population of particles. The \texttt{ListT} transformer adds non-determinism for running the program several times independently and \texttt{Weighted} provides sampling and scoring.
 
 For sequential methods a transformer
 \begin{minted}{Haskell}
 newtype Sequential m a =
-  Sequential
-    (Coroutine (Await ()) m a)
+  Sequential (Coroutine (Await ()) m a)
 \end{minted}
 based on coroutines is provided. It is made an instance of \texttt{MonadCond} by scoring in the underlying monad and then suspending. The inner monad may then be transformed (by for example resampling) before resuming.
 
 \subsection{iPMCMC}
-
-The PG sampler mentioned in section~\ref{ssub:smc_and_csmc} and similar SMC-based samplers suffer from path degeneracy due to the frequent resampling. To acquire good results, a large number of particles is needed which may be infeasible. The iPMCMC sampler aims to alleviate this issue by switching out a CSMC sweep with an independent SMC sweep the next generation for improved mixing.
-
-The iPMCMC sampler runs $M$ nodes indexed $m = 1,\dots,M$ of which $P$ nodes are CSMC and the rest SMC. A conditional node $j$ is identified by $c_j \in \{1,\dots,M\}$. The nodes are run $R$ MCMC iterations. At the first iteration all nodes run SMC since no conditional trajectories are yet available.
+\label{sec:ipmcmc}
+The iPMCMC consists of $M$ nodes indexed $m = 1,\dots,M$ of which $P \leq M$ nodes use CSMC and the rest $M-P$ nodes use SMC. Each node is run with $N$ particles. By running both explorative (SMC) and expoitative (CSMC) nodes a balance is possibly struck improving mixing and sample quality. Also, by running several methods concurrently there is the possibility of parallelisation.
 
 Each node $m$ returns returns an estimate of the marginal likelihood
 \begin{equation}
@@ -225,15 +208,20 @@ Each node $m$ returns returns an estimate of the marginal likelihood
     \hat Z_m = \prod\limits_{t=1}^T \frac 1 N \sum\limits_{i=1}^N w_{t,m}^i
 \end{equation} and its internal trajectories
 \begin{equation}
-t_m = \{\{(x^i_{t,m},w^i_{t.m})\}_{t=1}^T\}_{i=1}^N
+t_m = \{\{(x^i_{t,m},w^i_{t.m})\}_{t=1}^T\}_{i=1}^N .
 \end{equation}
-for use in choosing conditionals. For each MCMC iteration $r$ nodes $1:M \setminus c_{1:P}$ run SMC and nodes $c_{1:P}$ run CSMC using $x'_{1:P}[r-1]$. 
+The $P$ samples kept for each iteration is sampled from the nodes weighted by marginal likelihood. For each conditional node, a node is sampled from the union of unconditional nodes and current conditional node. If the result is an unconditional node, the current node is ``switched-out'' (considered unconditional) and the target ``switched-in''. The switched-out node is considered unconditional \emph{immediately} when resampling the next conditional node. The switched-in node is not considered again.
 
-The result is the conditional trajectories $x'_j[r]$ for each conditional node $j$ and MCMC iteration $r$. A function $f(x)$ may be estimated by
+From each node $m$ chosen this way (the $P$ new conditional nodes) one trajectory $t_m^{b_m}$ is chosen from its particles weighted on final particle weight $w_{T,m}^i$ such that
 \begin{equation}
-    \mathbb{E}[f(x)] = \frac 1 {RP} \sum\limits_{r=1}^R \sum\limits_{j=1}^P f(x'_j[r])
+    \label{eq:ipmcmc-mcmc}
+    \Pr(b_m = i) = \frac{w_{T,m}^i}{\sum_k w_{T,m}^k}.
 \end{equation}
-Since the nodes only exchange information between MCMC iterations there is ample room for paralellisation.
+The $P$ samples generated on MCMC iteration $r$ is denoted $x'[r]$ and are used as conditional trajectories in the next MCMC iteration. A function $f(x)$ may be estimated by
+\begin{equation}
+    \mathbb{E}[f(x)] = \frac 1 {RP} \sum\limits_{r=1}^R \sum\limits_{j=1}^P f(x'_j[r]) .
+\end{equation}
+See the paper by Rainforth et al.~\cite{ipmcmc} for details on the algorithm.
 
 \section{Method}
 
@@ -359,15 +347,25 @@ The MCMC step
 mcmcStep :: MonadSample m
   => V.Vector (SMCState m a) 
   -> V.Vector (SMCState m a)
-  -> Int
-  -> [Trajectory m a]
   -> m (V.Vector (Trajectory m a))
 \end{minted}
-takes the results of the conditional and unconditional nodes and two stack-allocated recursion values, \texttt{0} and \texttt{[]}. The former is the first index of the unconditional nodes and the latter the list of sampled conditional trajectories. Returned are the next conitional trajectories. For each conditional node $j$ a representative of the union of $j$ and every conditional node is taken, weighted on $\hat Z_m$ according to
+takes the results of the conditional and unconditional nodes and returns the next conditional trajectories $x'[r]$. The nodes and trajectories from the nodes are sampled according to section~\ref{sec:ipmcmc} and equation~\ref{eq:ipmcmc-mcmc} using helper functions
+\begin{minted}{Haskell}
+sampleNode :: MonadSample m
+  => SMCState m a
+  -> V.Vector (SMCState m a)
+  -> m ( SMCState m a
+       , V.Vector (SMCState m a))
+
+sampleCond :: MonadSample m
+  => SMCState m a
+  -> m (Trajectory m a)
+\end{minted}
+where \texttt{sampleNode} takes the current conditional node and the (currently) unconditional nodes, returning the sampled node and new unconditional nodes. The function \texttt{sampleCond} simply samples one trajectory from a specific node.
 
 \section{Results}
 
-To evaluate the implemented method it is tested for correctness and performance. Correctness may be demonstated by comparing the results obtained fron the method with the exact posterior distribution. The model is the simple dice model
+To evaluate the implemented method it is tested for correctness and performance. To test the method a model is chosen. The model is the simple dice model
 \begin{minted}{Haskell}
 dice_soft :: MonadInfer d => d Int
 dice_soft = do
@@ -376,16 +374,59 @@ dice_soft = do
   factor (1 / fromIntegral result)
   return result
 \end{minted}
-rolling two dice and conditioning it with a likelihood that is the reciprocal of the result. The models simplicity allows for calculating the exact posterior via exhaustive enumeration and performant testing. The dissimilarity between the distributions is measured by the standard metric KL divergence~\cite{kl} defined by
+rolling two dice and conditioning it with a likelihood that is the reciprocal of the result. The models simplicity allows for calculating the exact posterior via exhaustive enumeration as well as performant testing.
+
+The dissimilarity between the resulting and true distribution is measured by the standard KL divergence metric~\cite{kl} defined by
 \begin{equation}\label{eq:kl}
     D_{\mathrm{KL}} (P \parallel Q) = - \sum\limits_i P(i) \log \frac {Q(i)}{P(i)}
 \end{equation}
 for the divergence from $Q$ (the truth) to $P$ (the result) and $P(i)$ and $Q(i)$ are the probability of the samples. For a correct method the error should decay according to a power law, giving a straight line in a log-log plot.
 
-First, the custom SMC sampler is compared to the existing SMC sampler of Monad-Bayes. 
+\subsection{Parallelisation}
+\label{ssub:parallelisation}
 
-For evaluation we choose $M=32$, $N=100$ and $R=1000$ where $M$ and $N$ are the same as the evaulation in the original article and $R$ is chosen to keep the testing time reasonable. The sampler returns a list of samples for each iteration, allowing calculation of the error for any number of iterations $r=1,\dots,R$ by taking the first $r$ elements of the result. For each $r$ the KL divergence is calulated according to equation~\ref{eq:kl}. To stabilize the results, the sampler is run 10 times and for each $r$ a 95\% confidence interval for the error is obtained. The result is given in figure~\ref{fig:corr}.
+\begin{figure*}
+   \centering
+   \begin{subfigure}[b]{0.4\textwidth}
+   \centering
+   \includegraphics[width=\linewidth]{figures/parallel1.pdf}
+       \caption{Time elapsed as a function of threads available and trendline according to Amdahl's Law.}
+   \label{fig:parallel1}
+   \end{subfigure}\quad\begin{subfigure}[b]{0.4\textwidth}
+   \centering
+   \includegraphics[width=\linewidth]{figures/parallel2.pdf}
+       \caption{Time elapsed as a function of the reciprocal of threads available and linear lesat-squares regression.}
+   \label{fig:parallel2}
+   \end{subfigure}
+   \caption{Parallelisation benchmark and Amdahl's Law.}
+\end{figure*}
 
-For performance evaluation the sampler is timed and the error is 
+First the prallelisation is examined. The iPMCMC method is run on the model with $M=32$, $N=100$ and $R=10$, and the time elapsed is measured when running on a 32-core AMD Opteron 6274 machine. For each number of threads $1 \leq k \leq 32$ 10 measurements are taken and then averaged. The result is given in figure~\ref{fig:parallel1}. The data should follow Amdahl's Law~\cite{amdahl} for speedup as the number of cores available increases (or equivalently, the number of threads available assuming available cores). It is often formulated as the speedup acheived but might easily be reformulated into time elapsed
+\begin{equation}
+    T(k) = T(1)\left((1-P) + \frac 1 k P\right)
+\end{equation}
+for a given parallelisation $P$, which we want to find. The function is not linear in $n$, but is linear in $\frac 1 n$. This allows us to use linear least-squares regression to find $P$ if we plot the time elapsed agains the reciprocal of the number of threads available, see figure~\ref{fig:parallel2}. Both the slope $a$ and intercept $b$ may be used to calculate $P$, so the average of each method is used, giving approximately $P \approx 0.86$.
 
-\subsection{Comparisons}
+\subsection{Correctness}
+\label{sub:correctness}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/correctness.pdf}
+    \caption{Comparison of different methods: the \mbox{iPMCMC} sampler implemented in this thesis, a variant deviating from the specification, a trivially parallelisable sampler and a single SMC sampler.}
+    \label{fig:corr}
+\end{figure}
+
+Correctness may be demonstated by comparing the results obtained from the method with the exact posterior distribution. For evaluation we choose $M=32$, $N=100$ and $R=1000$ where $M$ and $N$ are the same as the evaulation in the original article~\cite{ipmcmc} and $R$ is chosen to keep the testing time reasonable. The sampler returns a list of samples for each iteration, allowing calculation of the error for any number of iterations $1 \leq r \leq R$ by taking the first $r$ elements of the result. For each $r$ the KL divergence is calulated according to equation~\ref{eq:kl}. To stabilize the results, the sampler is run 10 times and for each $r$ a 95\% confidence interval for the error is obtained. The result is given in figure~\ref{fig:corr}.
+
+The iPMCMC method implemented in this thesis is given by ``iPMCMC (original)''. It does not converge to the true posterior as it's not decreasing linearly but instead settles on some large error.
+
+A variant ``iPMCMC (variant)'' that uses simple uniform sampling when selecting the nodes intestead of their marginal likelihood as decribed in section~\ref{sec:ipmcmc} shows the correct behaviour.
+
+For reference, a single SMC sampler (the existing SMC sampler in Monad-Bayes) with increasing number of particles, ``SMC (multinomial)'', and a trivially parallelisable alternative using no conditional samplers and uniformly sampling $P$ particles at each iteration, are also given.
+
+\subsection{Evaluation}
+
+The parallelisation described in section~\ref{ssub:parallelisation} is promising. The result indicated that over 80\% of the algorithm as implemented is parallelisable and the result in section~\ref{sub:correctness} shows that the variant algorithm outperforms the single SMC sampler after a few seconds.
+
+The result of the original iPMCMC implementation is more troubling. The existence of bugs is evident by the incorrect behaviour expected on the log-log plot. The variant, only differing in how the next conditoinal nodes are sampled, shows where some of the bugs may be found. In addition, none of them are more performant than the trivially parallelisable alternative, possibly because of none of the iPMCMC methods correcty implements the algorithm described by Rainforth et al. The limitations described in section~\ref{sec:limits}, in particular only using a few of the generated particles, could also explain the difference.

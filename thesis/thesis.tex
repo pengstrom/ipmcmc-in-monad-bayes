@@ -1,4 +1,4 @@
-\documentclass[a4paper, twoside, twocolumn, html, DIV=12]{scrartcl}
+\documentclass[a4paper, twocolumn, html, DIV=12]{scrartcl}
 
 \input{preamble}
 
@@ -9,19 +9,22 @@
 \date{\today}
 
 \begin{document}
-
-\maketitle
-\begin{abstract}
-  the abstract
-\end{abstract}
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    \begin{abstract}
+Probabilistic programming shows much promise as a declarative way to define statistical models, but inference is often expensive. A parallelisable particle MMCMC sampler is implemeted in Haskell and the DSL Monad-Bayes. The method shows good performace compared to a single SMC sampler, but the full potential of the method could not be manifested.
+    \end{abstract}
+  \end{@twocolumnfalse}
+]
 
 
 \input{1-intro/introduction}
 \input{2-body/body}
 \input{3-conclusion/conclusion}
 
-\bibliographystyle{unsrt}
-\bibliography{references}
+%\bibliographystyle{author}
 
+\printbibliography
 
 \end{document}

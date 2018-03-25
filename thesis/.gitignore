@@ -10,3 +10,5 @@ _minted-thesis
 *.pdf
 *.synctex.gz
 *.swp
+*.bcf
+*.run.xml
