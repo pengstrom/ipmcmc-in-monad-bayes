@@ -1,0 +1,242 @@
+\onecolumn
+\appendix
+
+\section{Runtime information}
+\label{sec:runtime}
+
+\todo[inline]{Added appendix}
+
+The runtime information reported by GHC using \texttt{+RTS -N20 -s}.
+
+\subsection{iPMCMC}
+\label{sub:ipmcmc_original}
+
+Runtime information for the method implemented in this thesis using $M=32$, $N=100$ and $R=1000$.
+
+\subsubsection{Original}
+\label{ssub:original}
+
+The method implemented to the specification by Rainforth et al.
+\begin{verbatim}
+  35,951,853,136 bytes allocated in the heap
+   6,632,103,336 bytes copied during GC
+       7,618,296 bytes maximum residency (776 sample(s))
+         978,784 bytes maximum slop
+              33 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0     11125 colls, 11125 par   583.515s  89.322s   0.0080s    0.0520s
+  Gen  1       776 colls,   775 par   83.877s    9.302s   0.0120s    0.0491s
+
+  Parallel GC work balance: 34.77% (serial 0%, perfect 100%)
+
+  TASKS: 42 (1 bound, 41 peak workers (41 total), using -N20)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time     0.001s  (  0.012s elapsed)
+  MUT     time  1917.900s  (196.744s elapsed)
+  GC      time   667.393s  ( 98.624s elapsed)
+  EXIT    time     0.003s  (  0.003s elapsed)
+  Total   time  2585.459s  (295.384s elapsed)
+
+  Alloc rate    18,745,422 bytes per MUT second
+
+  Productivity  74.2% of total user, 66.6% of total elapsed
+
+gc_alloc_block_sync: 2114508
+whitehole_spin: 0
+gen[0].sync: 72407
+gen[1].sync: 122141
+\end{verbatim}
+
+
+\subsubsection{Uniform node sampling}
+\label{sub:ipmcmc_uniform_node_sampling}
+
+Like the original, but sampling the nodes (for conditional trajectories) uniformly instead of by marginal likelihood $\hat Z_m$.
+
+{\small
+\begin{verbatim}
+  35,839,146,096 bytes allocated in the heap
+   7,586,027,520 bytes copied during GC
+     233,237,360 bytes maximum residency (64 sample(s))
+       7,742,744 bytes maximum slop
+             659 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0     11342 colls, 11342 par   641.414s  95.252s   0.0084s    0.0463s
+  Gen  1        64 colls,    63 par    38.838s   3.696s   0.0577s    0.2672s
+
+  Parallel GC work balance: 37.32% (serial 0%, perfect 100%)
+
+  TASKS: 42 (1 bound, 41 peak workers (41 total), using -N20)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time     0.003s  (  0.012s elapsed)
+  MUT     time  1934.201s  (194.125s elapsed)
+  GC      time   680.253s  ( 98.948s elapsed)
+  EXIT    time     0.015s  (  0.138s elapsed)
+  Total   time  2614.627s  (293.223s elapsed)
+
+  Alloc rate    18,529,173 bytes per MUT second
+
+  Productivity  74.0% of total user, 66.3% of total elapsed
+
+gc_alloc_block_sync: 8771449
+whitehole_spin: 0
+gen[0].sync: 71306
+gen[1].sync: 611021
+\end{verbatim}
+}
+
+\subsubsection{Uniform trajectory sampling}
+\label{ssub:uniform_trajectory_sampling}
+
+Like the original, but sampling the trajectories (for conditional trajectories) uniformly instead of by final trajectory score $w_T^i$.
+
+{\small
+\begin{verbatim}
+  35,664,262,816 bytes allocated in the heap
+   6,741,223,040 bytes copied during GC
+       7,704,880 bytes maximum residency (781 sample(s))
+         776,656 bytes maximum slop
+              32 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0     10521 colls, 10521 par   575.589s  86.493s     0.0082s    0.0522s
+  Gen  1       781 colls,   780 par   83.529s   9.280s     0.0119s    0.0405s
+
+  Parallel GC work balance: 33.38% (serial 0%, perfect 100%)
+
+  TASKS: 42 (1 bound, 41 peak workers (41 total), using -N20)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.002s  (  0.012s elapsed)
+  MUT     time  1917.316s  (194.941s elapsed)
+  GC      time  659.119s  ( 95.773s elapsed)
+  EXIT    time    0.000s  (  0.009s elapsed)
+  Total   time  2576.590s  (290.735s elapsed)
+
+  Alloc rate    18,601,144 bytes per MUT second
+
+  Productivity  74.4% of total user, 67.1% of total elapsed
+
+gc_alloc_block_sync: 2333836
+whitehole_spin: 0
+gen[0].sync: 91490
+gen[1].sync: 112733
+\end{verbatim}
+}
+\subsubsection{Uniform node and trajectory sampling}
+\label{ssub:uniform_node_and_trajectory_sampling}
+
+Like the original, but sampling the trajectories \emph{and} nodes uniformly.
+
+{\small \begin{verbatim}
+  35,450,584,888 bytes allocated in the heap
+   7,706,953,000 bytes copied during GC
+     221,721,096 bytes maximum residency (74 sample(s))
+       8,304,336 bytes maximum slop
+             627 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0     10793 colls, 10793 par   593.880s  90.989s     0.0084s    0.0482s
+  Gen  1        74 colls,    73 par   44.216s   4.081s     0.0551s    0.2102s
+
+  Parallel GC work balance: 36.17% (serial 0%, perfect 100%)
+
+  TASKS: 42 (1 bound, 41 peak workers (41 total), using -N20)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.004s  (  0.010s elapsed)
+  MUT     time  1903.107s  (192.618s elapsed)
+  GC      time  638.096s  ( 95.070s elapsed)
+  EXIT    time    0.002s  (  0.004s elapsed)
+  Total   time  2541.367s  (287.702s elapsed)
+
+  Alloc rate    18,627,743 bytes per MUT second
+
+  Productivity  74.9% of total user, 67.0% of total elapsed
+
+gc_alloc_block_sync: 8563158
+whitehole_spin: 0
+gen[0].sync: 64290
+gen[1].sync: 676784
+\end{verbatim}
+\subsection{Many SMC}
+\label{sub:many_smc}
+
+The trivial parallelisation of $M$ SMC samplers taking $P$ particles each iteration with $M=32$, $N=100$ and $R = 1000$.
+
+{\small \begin{verbatim}
+  63,750,517,704 bytes allocated in the heap
+  12,467,705,232 bytes copied during GC
+   1,288,921,864 bytes maximum residency (24 sample(s))
+      22,955,776 bytes maximum slop
+            3121 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0     39464 colls, 39464 par   1744.526s  243.761s     0.0062s    0.0514s
+  Gen  1        24 colls,    23 par   95.717s   8.669s     0.3612s    2.0314s
+
+  Parallel GC work balance: 24.15% (serial 0%, perfect 100%)
+
+  TASKS: 43 (1 bound, 42 peak workers (42 total), using -N20)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.005s  (  0.013s elapsed)
+  MUT     time  2572.475s  (251.723s elapsed)
+  GC      time  1840.243s  (252.431s elapsed)
+  EXIT    time    0.150s  (  0.745s elapsed)
+  Total   time  4413.036s  (504.911s elapsed)
+
+  Alloc rate    24,781,783 bytes per MUT second
+
+  Productivity  58.3% of total user, 50.0% of total elapsed
+
+gc_alloc_block_sync: 20518554
+whitehole_spin: 0
+gen[0].sync: 35326
+gen[1].sync: 1123794
+\end{verbatim}
+
+\subsection{SMC}
+\label{sub:smc}
+
+A single SMC sampler with $N=4096$.
+
+{\small \begin{verbatim}
+     730,759,592 bytes allocated in the heap
+      37,668,168 bytes copied during GC
+       4,327,112 bytes maximum residency (8 sample(s))
+         116,352 bytes maximum slop
+              12 MB total memory in use (0 MB lost due to fragmentation)
+
+                                     Tot time (elapsed)  Avg pause  Max pause
+  Gen  0      1390 colls,     0 par    0.135s   0.126s     0.0001s    0.0014s
+  Gen  1         8 colls,     0 par    0.058s   0.066s     0.0082s    0.0201s
+
+  TASKS: 4 (1 bound, 3 peak workers (3 total), using -N1)
+
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  INIT    time    0.000s  (  0.002s elapsed)
+  MUT     time    5.981s  (  6.037s elapsed)
+  GC      time    0.193s  (  0.191s elapsed)
+  EXIT    time    0.002s  (  0.002s elapsed)
+  Total   time    6.334s  (  6.232s elapsed)
+
+  Alloc rate    122,178,269 bytes per MUT second
+
+  Productivity  97.0% of total user, 96.9% of total elapsed
+
+gc_alloc_block_sync: 0
+whitehole_spin: 0
+gen[0].sync: 0
+gen[1].sync: 0
+\end{verbatim}

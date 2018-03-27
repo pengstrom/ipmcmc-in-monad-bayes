@@ -7,7 +7,7 @@ LATEXMKOPT=-pdf -bibtex
 CONTINUOUS=-pvc
 
 MAIN=thesis
-SOURCES=$(MAIN).tex Makefile references.bib 1-intro/introduction.tex 2-body/body.tex 3-conclusion/conclusion.tex
+SOURCES=$(MAIN).tex Makefile references.bib 1-intro/introduction.tex 2-body/body.tex 3-conclusion/conclusion.tex appendix/appendix.tex
 FIGURES := $(shell find figures/* images/* -type f)
 
 all: $(MAIN).pdf

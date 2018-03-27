@@ -390,7 +390,7 @@ for the divergence from $Q$ (the truth) to $P$ (the result) and $P(i)$ and $Q(i)
    \begin{subfigure}[b]{0.4\textwidth}
    \centering
    \includegraphics[width=\linewidth]{figures/parallel1.pdf}
-       \caption{Time elapsed as a function of threads available and trendline according to Amdahl's Law.}
+   \caption{Time elapsed as a function of threads available and trendline according to Amdahl's Law (equation~\ref{eq:amdahl}).}
    \label{fig:parallel1}
    \end{subfigure}\quad\begin{subfigure}[b]{0.4\textwidth}
    \centering
@@ -401,11 +401,11 @@ for the divergence from $Q$ (the truth) to $P$ (the result) and $P(i)$ and $Q(i)
    \caption{Parallelisation benchmark and Amdahl's Law.}
 \end{figure*}
 
-First the prallelisation is examined. The iPMCMC method is run on the model with $M=32$, $N=100$ and $R=10$, and the time elapsed is measured when running on a 32-core AMD Opteron 6274 machine. For each number of threads $1 \leq k \leq 32$ 10 measurements are taken and then averaged. The result is given in figure~\ref{fig:parallel1}. The data should follow Amdahl's Law~\cite{amdahl} for speedup as the number of cores available increases (or equivalently, the number of threads available assuming available cores). It is often formulated as the speedup acheived but might easily be reformulated into time elapsed
-\begin{equation}
+First the prallelisation is examined. The iPMCMC method is run on the model with $M=32$, $N=100$ and $R=10$, and the time elapsed is measured when running on a 32-core AMD Opteron 6274 machine. For each number of threads $1 \leq k \leq 32$, 10 measurements are taken and then averaged. The result is given in figure~\ref{fig:parallel1}. The data should follow Amdahl's Law~\cite{amdahl} for speedup as the number of cores available increases (or equivalently, the number of threads available assuming available cores). It is often formulated as the speedup acheived but might easily be reformulated into time elapsed \todo{Equation reference in figure}
+\begin{equation}\label{eq:amdahl}
     T(k) = T(1)\left((1-P) + \frac 1 k P\right)
 \end{equation}
-for a given parallelisation $P$, which we want to find. The function is not linear in $n$, but is linear in $\frac 1 n$. This allows us to use linear least-squares regression to find $P$ if we plot the time elapsed agains the reciprocal of the number of threads available, see figure~\ref{fig:parallel2}. Both the slope $a$ and intercept $b$ may be used to calculate $P$, so the average of each method is used, giving approximately $P \approx 0.86$.
+for a given parallelisation $P$, which we want to find. The function is not linear in $k$, \todo{fixed $n$ instead of $k$} but is linear in $\frac 1 k$. This allows us to use linear least-squares regression to find $P$ if we plot the time elapsed agains the reciprocal of the number of threads available, see figure~\ref{fig:parallel2}. Both the slope $a$ and intercept $b$ may be used to calculate $P$, so the average of each method is used, giving approximately $P \approx 0.86$.
 
 \subsection{Correctness}
 \label{sub:correctness}
@@ -417,13 +417,15 @@ for a given parallelisation $P$, which we want to find. The function is not line
     \label{fig:corr}
 \end{figure}
 
-Correctness may be demonstated by comparing the results obtained from the method with the exact posterior distribution. For evaluation we choose $M=32$, $N=100$ and $R=1000$ where $M$ and $N$ are the same as the evaulation in the original article~\cite{ipmcmc} and $R$ is chosen to keep the testing time reasonable. The sampler returns a list of samples for each iteration, allowing calculation of the error for any number of iterations $1 \leq r \leq R$ by taking the first $r$ elements of the result. For each $r$ the KL divergence is calulated according to equation~\ref{eq:kl}. To stabilize the results, the sampler is run 10 times and for each $r$ a 95\% confidence interval for the error is obtained. The result is given in figure~\ref{fig:corr}.
+Correctness may be demonstated by comparing the results obtained from the method with the exact posterior distribution. For evaluation we choose $M=32$, $N=100$ and $R=1000$ where $M$ and $N$ are the same as the evaulation in the original article~\cite{ipmcmc} and $R$ is chosen to keep the testing time reasonable. \todo{Added number of threads used} For parallelisation, a value $k=20$ was chosen, motivated by the previous result. The sampler returns a list of samples for each iteration, allowing calculation of the error for any number of iterations $1 \leq r \leq R$ by taking the first $r$ elements of the result. For each $r$ the KL divergence is calulated according to equation~\ref{eq:kl}. To stabilize the results, the sampler is run 10 times and for each $r$ a 95\% confidence interval for the error is obtained. The result is given in figure~\ref{fig:corr}. For detailed runtime information, see appendix~\cite{sec:runtime}.
 
-The iPMCMC method implemented in this thesis is given by ``iPMCMC (original)''. It does not converge to the true posterior as it's not decreasing linearly but instead settles on some large error.
+\todo[inline]{Added memory information. Perhaps a table?}.
 
-A variant ``iPMCMC (variant)'' that uses simple uniform sampling when selecting the nodes intestead of their marginal likelihood as decribed in section~\ref{sec:ipmcmc} shows the correct behaviour.
+The iPMCMC method implemented in this thesis is given by ``iPMCMC (original)''. It does not converge to the true posterior as it's not decreasing linearly but instead settles on some large error. It uses 33 MB of memory for a single run.
 
-For reference, a single SMC sampler (the existing SMC sampler in Monad-Bayes) with increasing number of particles, ``SMC (multinomial)'', and a trivially parallelisable alternative using no conditional samplers and uniformly sampling $P$ particles at each iteration, are also given.
+A variant ``iPMCMC (variant)'' that uses simple uniform sampling when selecting the nodes intestead of their marginal likelihood as decribed in section~\ref{sec:ipmcmc} shows the correct behaviour. It uses 659 MB of memory for a single run.
+
+For reference, a single SMC sampler (the existing SMC sampler in Monad-Bayes) with increasing number of particles, ``SMC (multinomial)'' (12 MB for $N=4096$), and a trivially parallelisable alternative using no conditional samplers and uniformly sampling $P$ particles at each iteration (3121 MB), are also given.
 
 \subsection{Evaluation}
 
