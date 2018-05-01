@@ -4,29 +4,29 @@ Bayes' theorem
 \begin{equation}
     \Pr(\theta\mid D) = \frac {\Pr(\theta) \Pr(D \mid \theta)}{\Pr(D)}
 \end{equation}
-about conditional probability is well-known from any introductory course on the subject. It expresses how one's prior believed distribution of $\theta$ ($\Pr(\theta)$) is updated given observations $D$ into a posterior belief $\Pr(\theta\mid D)$. The likelihood $\Pr(D \mid \theta)$ represents the probaility of generating the observation $D$ given a particular $\theta$. The merginal likelihood $\Pr(D)$ acts as normalisation to ensure the distributon is valid.
+about conditional probability is well-known from any introductory course on probability theory. It expresses how one's prior believed distribution of $\theta$ ($\Pr(\theta)$) is updated given observations $D$ into a posterior belief $\Pr(\theta\mid D)$. The likelihood $\Pr(D \mid \theta)$ represents the probability of generating the observation $D$ given a particular $\theta$. The marginal likelihood $\Pr(D)$ acts as normalisation to ensure the distribution is valid.
 
-The distribution of the posterior is valuable as it enables prediction from observations. However, unless the prior and likelihood are simple disributions then the posterior is often intractable~\cite{barber} requiring numerical methods. One approach for approximating complicated posteriors is the family of MCMC  methods~\cite{robert}. The Particle Markov chain Monte Carlo methods by Andrieu et al.~\cite{pmcmc}, and in particular the Gibbs (PG) sampler, aims to improve the proposals for the MCMC sampler by using importance sampling in the form of sequential Monte Carlo (SMC)~\cite{smc}. The PG sampler uses a modifid SMC sampler conditioned on an existing particle trajectory, conditional SMC (CSMC).
+The posterior distribution is valuable as it enables prediction from observations. However, unless the prior and likelihood are simple distributions then the posterior is often intractable~\cite{barber} requiring numerical methods to sample from. One approach for approximating complicated posteriors is the family of MCMC  methods~\cite{robert}. The particle Markov chain Monte Carlo methods by Andrieu et al.~\cite{pmcmc}, and in particular the particle Gibbs (PG) sampler, aims to improve the proposals for the MCMC sampler by using importance sampling in the form of sequential Monte Carlo (SMC)~\cite{smc}. The PG sampler uses a modified SMC sampler conditioned on an existing particle trajectory, conditional SMC (CSMC).
 
-The CSMC sampler is prone to path degeneracy. If the resampling collapses then, by design, only the conditional trajectory remains, reducing the mixing required for a healthy MCMC step. Rainforth et al.~\cite{ipmcmc} proposes a solution calle Interacting Particle Markov Chain Monte Carlo (IPMCMC) where several CSMC and SMC sampler are run in parallel. By sampling the conditonal trajectories possibly from independent (unconditional) SMC sampers the mixing is improved. In addition, the nodes only interact briefly promising a high degree of parallelisation.
+The CSMC sampler is prone to path degeneracy. If the resampling collapses then, by design, only the conditional trajectory remains, reducing the mixing required for a healthy MCMC step. Rainforth et al.~\cite{ipmcmc} proposes a solution calle Interacting Particle Markov Chain Monte Carlo (iPMCMC) where several CSMC and SMC sampler are run in parallel. By sampling the conditional trajectories possibly from independent (unconditional) SMC samplers the mixing is improved. In addition, the nodes only interact briefly promising a high degree of parallelisation.
 
-This thesis presents a Haskell implementation of the iPMCMC sampler for Bayesian inference in the probabilistic programming DSL Monad-Bayes~\cite{mbayes}. Haskell\footnote{\url{https://www.haskell.org}} is a general-purpose purely functional lazy programming language. To readers unfamiliar with the language an introductory text is recommended~\cite{haskell}. The monad abstraction for structured computation is well-suited for DSL's and type classes allows flexible implementation of probabilistic functionality and inference.
+This thesis presents a Haskell implementation of the iPMCMC sampler for Bayesian inference in the probabilistic programming DSL Monad-Bayes~\cite{mbayes}. Haskell\footnote{\url{https://www.haskell.org}} is a general-purpose purely functional lazy programming language. To readers unfamiliar with the language an introductory text is recommended~\cite{haskell}. The monad abstraction for structured computation is well-suited for DSLs, and type classes allows flexible implementation of probabilistic functionality and inference.
 
 \subsection{Probabilistic programming}
 \label{sec:pprog}
 
-One promising way to express statistical models, and in particular Bayesian probems is probabilistic programming~\cite{dippl}. This paradigm leverages the expressiveness and familiarity of programming
-languages  to define models indepenently of inferece, allowing the models to be composable.
+One promising way to express statistical models, and in particular Bayesian problems is probabilistic programming~\cite{dippl}. This paradigm leverages the expressiveness and familiarity of programming
+languages  to define models independently of inference, allowing the models to be composable.
 
 In the design of a probabilistic language the main trade-off is between
 expressiveness and performance of inference. A restricted language like
-BUGS~\cite{bugs} makes the inference simpler. In Universal
+BUGS~\cite{bugs} makes the inference simpler. In universal
 (Turing-complete) languages like Anglican~\cite{anglican} and
 Monad-Bayes~\cite{mbayes} the inference is more challenging.
 
 Central to all probabilistic languages is the ability to construct more
 complex models using simpler building blocks, usually primitive distributions
-and use Bayesian filtering. Consider the problem of regression of some complicated function $y = f(\theta;x)$ parameterised by a parameter $\theta > 0$ and observations $D = \{ (x_i,y_i) \}_{i=1}^N$ influenced by some normal noise $\delta \sim \operatorname{Norm}(0,1)$ such that
+and use Bayesian filtering. Consider the problem of regression of some complicated function $y = f(\theta,x)$ parametrised by a parameter $\theta > 0$ and observations $D = \{ (x_i,y_i) \}_{i=1}^N$ influenced by some normal noise $\delta \sim \operatorname{Norm}(0,1)$ such that
 \begin{equation}
    y_i = f(\theta;x_i) + \delta .
 \end{equation}
@@ -42,61 +42,16 @@ reg :: MonadInfer m
   => [(Double,Double)] -- Observations
   -> m Double
 reg obs = do
+  theta <- gamma 1 1
   let fun = f theta
       sigma = 1
-  theta <- gamma 1 1
   forM obs (\ (x,y) -> do
     let mu = fun x
         p = normalPdf mu sigma y
     score p)
   return theta
 \end{minted}
-where we for each observation score the likelihood---how probable the data is given the parameter (line 10)---skewing the prior distibution (line 7) favouring values close to where the error is small. Note how the formulation closely matches the mathematical definition. This thesis will focus on efficient but approximative sampling-based
-methods for finding the distribution in such problems.
-
-%Consider the problem of rolling two dice and reading the result of
-%the first die \emph{given that the sum is larger than 5}. The outcome of a die is
-%assumed to be uniformly 1 through 6.
-%In the Monad-Bayes DSL (see section~\ref{sec:mbayes}) this may be
-%expressed as
-%\begin{minted}{Haskell}
-%dice :: MonadInfer m => m Int
-%dice = do
-  %a <- uniformD [1..6]
-  %b <- uniformD [1..6]
-  %condition (a + b > 7)
-  %return a
-%\end{minted}
-%which is very close to the actual problem description. Since the model is
-%discrete we may enumerate all possibilities and get the exact distribution at
-%the cost of exponential complexity.
-%
-%\begin{center}
-  %
-  %\begin{tabular}{crrrrrr}
-    %\toprule
-    %\midrule
-    %$a$ & $\Pr(a)$ \\
-    %\midrule
-    %1&0.00 \\
-%2&0.07 \\
-%3&0.13\\
-%4&0.20 \\
-%5&0.27\\
-%6&0.33\\
-%\midrule
-%\bottomrule
-  %\end{tabular}
-%\end{center}
-
-
-%\subsubsection{Bayesian inference}
-
-%The distributions of stochastic models are often complicated and analytically
-%intractable. To efficiently approximate the distribution of such models several
-%methods have been proposed in literature. This paper focuses on sampling-based
-%methods of the Markov Chain Monte Carlo (MCMC) kind~\cite{mcmc}, in particular sequential
-%methods based on importance sampling (SMC)~\cite{smcgordon,smcdoucet} suitable
-%for probabilistic programs~\cite{wood}.
+where we for each observation score the likelihood---how probable the data is given the parameter (line 10)---skewing the prior distribution (line 7) favouring values close to where the error is small. Note how the formulation closely matches the mathematical definition. This thesis will focus on efficient but approximate sampling-based
+methods for finding the distribution in such problems by implementing the iPMCMC sampler and evaluating the parallelisation and comparing it to samplers in Monad-Bayes.
 
 
